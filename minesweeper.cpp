@@ -308,6 +308,8 @@ int main(int, char**){
 
     UnloadTexture(flag);
     UnloadTexture(mine);
+    for (auto num : numbers)
+        UnloadTexture(num);
 
     CloseWindow();
 }
