@@ -66,7 +66,7 @@ void mines_rand_m(std::vector<uint8_t>& mines, size_t m) {
 enum class TileState {
     Untouched,
     Empty,
-    Bomb,
+    Mine,
     Flag,
 };
 
@@ -115,9 +115,9 @@ int main(int, char**){
     }
 
     Texture2D flag = LoadTexture("assets/flag.png");
-    Texture2D bomb = LoadTexture("assets/bomb.png");
+    Texture2D mine = LoadTexture("assets/mine.png");
 
-    if (!IsTextureReady(flag) || !IsTextureReady(bomb)) {
+    if (!IsTextureReady(flag) || !IsTextureReady(mine)) {
         TraceLog(LOG_ERROR, "textures not ready!");
         CloseWindow();
         return 1;
@@ -126,13 +126,13 @@ int main(int, char**){
     SetTargetFPS(60);
 
     double mineProb = 0.1;
-    size_t mineCount = 15;
+    size_t totalMines = 15;
 
     minesweeper::Matrix<uint8_t> mines(boxes.y, boxes.x, false);
-    mines_rand_m(mines.data, mineCount);
+    mines_rand_m(mines.data, totalMines);
 
     minesweeper::Matrix<TileState> tileStates((size_t)boxes.y, (size_t)boxes.x, TileState::Untouched);
-    minesweeper::Matrix<size_t> bombCount((size_t)boxes.y, (size_t)boxes.x, 0);
+    minesweeper::Matrix<size_t> mineCounts((size_t)boxes.y, (size_t)boxes.x, 0);
 
     // close with ESC
     while(!WindowShouldClose()) {
@@ -149,7 +149,7 @@ int main(int, char**){
             }
 
             else if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                tileStates[mouseBoxY][mouseBoxX] = (mines[mouseBoxY][mouseBoxX] ? TileState::Bomb : TileState::Empty);
+                tileStates[mouseBoxY][mouseBoxX] = (mines[mouseBoxY][mouseBoxX] ? TileState::Mine : TileState::Empty);
             }
         }
 
@@ -168,7 +168,7 @@ int main(int, char**){
                     case TileState::Untouched:
                         DrawRectangleV({x, y}, boxSize, boxColor);
                         if (mines[iy][ix])
-                            DrawTextureV(bomb, {x, y}, BLACK);
+                            DrawTextureV(mine, {x, y}, BLACK);
                         break;
 
                     case TileState::Empty:
@@ -180,9 +180,9 @@ int main(int, char**){
                         DrawTextureV(flag, {x, y}, WHITE);
                         break;
 
-                    case TileState::Bomb:
+                    case TileState::Mine:
                         DrawRectangleV({x, y}, boxSize, boxColor);
-                        DrawTextureV(bomb, {x, y}, WHITE);
+                        DrawTextureV(mine, {x, y}, WHITE);
                         break;
 
                     default:
@@ -197,7 +197,7 @@ int main(int, char**){
     }
 
     UnloadTexture(flag);
-    UnloadTexture(bomb);
+    UnloadTexture(mine);
 
     CloseWindow();
 }
