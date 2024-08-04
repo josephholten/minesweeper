@@ -76,9 +76,9 @@ int main(int, char**){
     float textMargin = 5;
     float margin = 50;
 
-    */
     float fontSize = 20.f;
     float fontSpacing = 3.f;
+    */
 
     Color backgroundColor = BLACK;
     Color foregroundColor = WHITE;
@@ -125,7 +125,6 @@ int main(int, char**){
 
     SetTargetFPS(60);
 
-    double mineProb = 0.1;
     size_t totalMines = 15;
 
     minesweeper::Matrix<uint8_t> mines(boxes.y, boxes.x, false);
