@@ -72,6 +72,38 @@ enum class TileState {
     Flag,
 };
 
+void uncover(minesweeper::Matrix<TileState> &tileStates, minesweeper::Matrix<size_t> &mineCounts, size_t row, size_t col)
+{
+    TraceLog(LOG_INFO, "%zux%zu", row, col);
+    tileStates[row][col] = TileState::Empty;
+    if (mineCounts[row][col] > 0)
+        return;
+
+    if (row > 0 && tileStates[row-1][col] != TileState::Empty)
+        uncover(tileStates, mineCounts, row - 1, col);
+    // NE
+    if (row > 0 && col + 1 < mineCounts.cols && tileStates[row-1][col+1] != TileState::Empty)
+        uncover(tileStates, mineCounts, row - 1, col + 1);
+    // E
+    if (col + 1 < mineCounts.cols && tileStates[row][col+1] != TileState::Empty)
+        uncover(tileStates, mineCounts, row, col + 1);
+    // SE
+    if (row + 1 < mineCounts.rows && col + 1 < mineCounts.cols && tileStates[row+1][col+1] != TileState::Empty)
+        uncover(tileStates, mineCounts, row + 1, col + 1);
+    // S
+    if (row + 1 < mineCounts.rows && tileStates[row+1][col] != TileState::Empty)
+        uncover(tileStates, mineCounts, row + 1, col);
+    // SW
+    if (row + 1 < mineCounts.rows && col > 0 && tileStates[row+1][col-1] != TileState::Empty)
+        uncover(tileStates, mineCounts, row + 1, col - 1);
+    // W
+    if (col > 0 && tileStates[row][col-1] != TileState::Empty)
+        uncover(tileStates, mineCounts, row, col - 1);
+    // NW
+    if (row > 0 && col > 0 && tileStates[row-1][col-1] != TileState::Empty)
+        uncover(tileStates, mineCounts, row - 1, col - 1);
+}
+
 int main(int, char**){
     /*
     const Vector2 center = Vector2Scale(screenSize, 0.5f);
@@ -190,7 +222,7 @@ int main(int, char**){
                 if (mines[mouseBoxY][mouseBoxX]) {
                     tileStates[mouseBoxY][mouseBoxX] = TileState::Mine;
                 } else {
-                    tileStates[mouseBoxY][mouseBoxX] = TileState::Empty;
+                    uncover(tileStates, mineCounts, mouseBoxY, mouseBoxX);
                 }
             }
         }
