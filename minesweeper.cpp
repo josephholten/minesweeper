@@ -72,35 +72,38 @@ enum class TileState {
     Flag,
 };
 
-void uncover(minesweeper::Matrix<TileState> &tileStates, minesweeper::Matrix<size_t> &mineCounts, size_t row, size_t col)
+size_t uncover(minesweeper::Matrix<TileState> &tileStates, minesweeper::Matrix<size_t> &mineCounts, size_t row, size_t col)
 {
+    size_t uncovered = 1;
     tileStates[row][col] = TileState::Empty;
     if (mineCounts[row][col] > 0)
-        return;
+        return uncovered;
 
     if (row > 0 && tileStates[row-1][col] != TileState::Empty)
-        uncover(tileStates, mineCounts, row - 1, col);
+        uncovered += uncover(tileStates, mineCounts, row - 1, col);
     // NE
     if (row > 0 && col + 1 < mineCounts.cols && tileStates[row-1][col+1] != TileState::Empty)
-        uncover(tileStates, mineCounts, row - 1, col + 1);
+        uncovered += uncover(tileStates, mineCounts, row - 1, col + 1);
     // E
     if (col + 1 < mineCounts.cols && tileStates[row][col+1] != TileState::Empty)
-        uncover(tileStates, mineCounts, row, col + 1);
+        uncovered += uncover(tileStates, mineCounts, row, col + 1);
     // SE
     if (row + 1 < mineCounts.rows && col + 1 < mineCounts.cols && tileStates[row+1][col+1] != TileState::Empty)
-        uncover(tileStates, mineCounts, row + 1, col + 1);
+        uncovered += uncover(tileStates, mineCounts, row + 1, col + 1);
     // S
     if (row + 1 < mineCounts.rows && tileStates[row+1][col] != TileState::Empty)
-        uncover(tileStates, mineCounts, row + 1, col);
+        uncovered += uncover(tileStates, mineCounts, row + 1, col);
     // SW
     if (row + 1 < mineCounts.rows && col > 0 && tileStates[row+1][col-1] != TileState::Empty)
-        uncover(tileStates, mineCounts, row + 1, col - 1);
+        uncovered += uncover(tileStates, mineCounts, row + 1, col - 1);
     // W
     if (col > 0 && tileStates[row][col-1] != TileState::Empty)
-        uncover(tileStates, mineCounts, row, col - 1);
+        uncovered += uncover(tileStates, mineCounts, row, col - 1);
     // NW
     if (row > 0 && col > 0 && tileStates[row-1][col-1] != TileState::Empty)
-        uncover(tileStates, mineCounts, row - 1, col - 1);
+        uncovered += uncover(tileStates, mineCounts, row - 1, col - 1);
+
+    return uncovered;
 }
 
 int main(int, char**){
@@ -204,19 +207,21 @@ int main(int, char**){
     }
 
     bool dead = false;
+    bool won = false;
+    size_t uncovered = 0;
 
     // close with ESC
     while(!WindowShouldClose()) {
         // handle input
         Vector2 mousePos = GetMousePosition();
-        if (mousePos.x >= boxesOffset.x && mousePos.x <= screenSize.x - boxesOffset.x
+        if (!dead && mousePos.x >= boxesOffset.x && mousePos.x <= screenSize.x - boxesOffset.x
             && mousePos.y >= boxesOffset.y && mousePos.y <= screenSize.y - boxesOffset.y)
         {
             size_t mouseBoxX = (mousePos.x - boxesOffset.x) / (boxSize.x + boxMargin.x);
             size_t mouseBoxY = (mousePos.y - boxesOffset.y) / (boxSize.y + boxMargin.y);
 
             if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
-                tileStates[mouseBoxY][mouseBoxX] = TileState::Flag;
+                tileStates[mouseBoxY][mouseBoxX] = (tileStates[mouseBoxY][mouseBoxX] != TileState::Flag ? TileState::Flag : TileState::Empty);
             }
 
             else if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
@@ -225,7 +230,9 @@ int main(int, char**){
                     dead = true;
                     TraceLog(LOG_INFO, "you died! %d", dead);
                 } else {
-                    uncover(tileStates, mineCounts, mouseBoxY, mouseBoxX);
+                    uncovered += uncover(tileStates, mineCounts, mouseBoxY, mouseBoxX);
+                    if (uncovered >= mines.cols*mines.rows-totalMines)
+                        won = true;
                 }
             }
         }
@@ -277,10 +284,24 @@ int main(int, char**){
                 const char* text = "You died!";
                 int fontSize = 60;
                 int margin = 5;
+                Color color = RED;
                 Vector2 pos = {screenSize.x/2, screenSize.y/2};
+
                 int text_width = MeasureText(text, fontSize);
                 DrawRectangle(pos.x-text_width/2.-margin, pos.y-fontSize/2.-margin, text_width + 2*margin, fontSize, {0, 0, 0, 128});
-                DrawText(text, pos.x-text_width/2., pos.y-fontSize/2., fontSize, RED);
+                DrawText(text, pos.x-text_width/2., pos.y-fontSize/2., fontSize, color);
+            }
+
+            if (won) {
+                const char* text = "You won!";
+                int fontSize = 60;
+                int margin = 5;
+                Color color = GREEN;
+                Vector2 pos = {screenSize.x/2, screenSize.y/2};
+
+                int text_width = MeasureText(text, fontSize);
+                DrawRectangle(pos.x-text_width/2.-margin, pos.y-fontSize/2.-margin, text_width + 2*margin, fontSize, {0, 0, 0, 128});
+                DrawText(text, pos.x-text_width/2., pos.y-fontSize/2., fontSize, GREEN);
             }
         } EndDrawing();
     }
