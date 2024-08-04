@@ -74,7 +74,6 @@ enum class TileState {
 
 void uncover(minesweeper::Matrix<TileState> &tileStates, minesweeper::Matrix<size_t> &mineCounts, size_t row, size_t col)
 {
-    TraceLog(LOG_INFO, "%zux%zu", row, col);
     tileStates[row][col] = TileState::Empty;
     if (mineCounts[row][col] > 0)
         return;
@@ -166,7 +165,7 @@ int main(int, char**){
     SetTargetFPS(60);
 
     size_t totalMines = 15;
-    bool UNHIDE_MINES = true;
+    bool UNHIDE_MINES = false;
 
     minesweeper::Matrix<uint8_t> mines(boxes.y, boxes.x, false);
     mines_rand_m(mines.data, totalMines);
@@ -204,6 +203,8 @@ int main(int, char**){
         }
     }
 
+    bool dead = false;
+
     // close with ESC
     while(!WindowShouldClose()) {
         // handle input
@@ -221,6 +222,8 @@ int main(int, char**){
             else if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 if (mines[mouseBoxY][mouseBoxX]) {
                     tileStates[mouseBoxY][mouseBoxX] = TileState::Mine;
+                    dead = true;
+                    TraceLog(LOG_INFO, "you died! %d", dead);
                 } else {
                     uncover(tileStates, mineCounts, mouseBoxY, mouseBoxX);
                 }
@@ -242,7 +245,7 @@ int main(int, char**){
                     case TileState::Untouched:
                         DrawRectangleV({x, y}, boxSize, boxColor);
                         if (UNHIDE_MINES && mines[iy][ix])
-                            DrawTextureV(mine, {x, y}, BLACK);
+                            DrawTextureV(mine, {x, y}, backgroundColor);
                         break;
 
                     case TileState::Empty:
@@ -270,6 +273,15 @@ int main(int, char**){
                 }
             }
 
+            if (dead) {
+                const char* text = "You died!";
+                int fontSize = 60;
+                int margin = 5;
+                Vector2 pos = {screenSize.x/2, screenSize.y/2};
+                int text_width = MeasureText(text, fontSize);
+                DrawRectangle(pos.x-text_width/2.-margin, pos.y-fontSize/2.-margin, text_width + 2*margin, fontSize, {0, 0, 0, 128});
+                DrawText(text, pos.x-text_width/2., pos.y-fontSize/2., fontSize, RED);
+            }
         } EndDrawing();
     }
 
