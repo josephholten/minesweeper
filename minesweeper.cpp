@@ -1,4 +1,7 @@
 #include <stdio.h>
+#include <vector>
+#include <random>
+#include <algorithm>
 #include <time.h>
 #include "raylib.h"
 #include "raymath.h"
@@ -23,6 +26,26 @@ void DrawNet(Vector2 screenSize, Vector2 margin, float thick, Color color) {
     DrawLineEx(Vector2Subtract(se, horizontalLineOffset), Vector2Subtract(sw, horizontalLineOffset), thick, color);
     // left
     DrawLineExDashed(Vector2Add(sw, verticalLineOffset), Vector2Add(nw, verticalLineOffset), thick, color, dashLength);
+}
+
+void mines_rand_p(std::vector<bool>& mines, double p) {
+    std::default_random_engine random_engine(std::random_device{}());
+    std::bernoulli_distribution bernoulli(p);
+    for (size_t i = 0; i < mines.size(); i++)
+        mines[i] = bernoulli(random_engine);
+}
+
+void mines_rand_m(std::vector<bool>& mines, size_t m) {
+    std::vector<size_t> idxs(mines.size(), 0);
+    for (size_t i = 0; i < mines.size(); i++)
+        idxs[i] = i;
+    std::shuffle(
+        idxs.begin(),
+        idxs.end(),
+        std::random_device()
+    );
+    for (size_t i = 0; i < m; i++)
+        mines[idxs[i]] = true;
 }
 
 int main(int, char**){
@@ -72,9 +95,13 @@ int main(int, char**){
         return 1;
     }
 
-    SetRandomSeed((unsigned int)time(NULL));
-
     SetTargetFPS(60);
+
+    double mineProb = 0.1;
+    size_t mineCount = 15;
+
+    std::vector<bool> mines(boxes.x * boxes.y, false);
+    mines_rand_m(mines, mineCount);
 
     // close with ESC
     while(!WindowShouldClose()) {
@@ -89,11 +116,13 @@ int main(int, char**){
                 borderThickness + boxMargin.y
             };
 
-            // draw boxes
-            for (float x = boxesOffset.x; x + boxesOffset.x + boxSize.x <= screenSize.x; x += boxSize.x + boxMargin.x) {
-                for (float y = boxesOffset.y; y + boxesOffset.y + boxSize.y <= screenSize.y; y += boxSize.y + boxMargin.y) {
+            for (size_t iy = 0; iy < boxes.y; iy++) {
+                for (size_t ix = 0; ix < boxes.x; ix++) {
+                    float x = boxesOffset.x + ix*(boxSize.x + boxMargin.x);
+                    float y = boxesOffset.y + iy*(boxSize.y + boxMargin.y);
                     DrawRectangleV({x, y}, boxSize, boxColor);
-                    DrawTextureV(flag, {x, y}, WHITE);
+                    if (mines[iy*(size_t)boxes.x + ix])
+                        DrawTextureV(bomb, {x, y}, WHITE);
                 }
             }
 
