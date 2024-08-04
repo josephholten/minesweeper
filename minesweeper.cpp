@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <vector>
+#include <array>
 #include <random>
 #include <algorithm>
 #include <time.h>
+#include <fmt/core.h>
 #include "raylib.h"
 #include "raymath.h"
 
@@ -76,9 +78,9 @@ int main(int, char**){
     float textMargin = 5;
     float margin = 50;
 
-    float fontSize = 20.f;
-    float fontSpacing = 3.f;
     */
+    float fontSize = 32.f;
+    float fontSpacing = 3.f;
 
     Color backgroundColor = BLACK;
     Color foregroundColor = WHITE;
@@ -116,6 +118,12 @@ int main(int, char**){
 
     Texture2D flag = LoadTexture("assets/flag.png");
     Texture2D mine = LoadTexture("assets/mine.png");
+    Texture2D numbers[10];
+    char path[] = "assets/?.png";
+    for (size_t i = 1; i <= 5; i++) {
+        path[7] = '0' + i;
+        numbers[i] = LoadTexture(path);
+    }
 
     if (!IsTextureReady(flag) || !IsTextureReady(mine)) {
         TraceLog(LOG_ERROR, "textures not ready!");
@@ -126,12 +134,43 @@ int main(int, char**){
     SetTargetFPS(60);
 
     size_t totalMines = 15;
+    bool UNHIDE_MINES = true;
 
     minesweeper::Matrix<uint8_t> mines(boxes.y, boxes.x, false);
     mines_rand_m(mines.data, totalMines);
 
     minesweeper::Matrix<TileState> tileStates((size_t)boxes.y, (size_t)boxes.x, TileState::Untouched);
+
+    // count mines
     minesweeper::Matrix<size_t> mineCounts((size_t)boxes.y, (size_t)boxes.x, 0);
+    for (size_t row = 0; row < mines.rows; row++) {
+        for (size_t col = 0; col < mines.cols; col++) {
+            // N
+            if (row > 0 && mines[row-1][col])
+                mineCounts[row][col]++;
+            // NE
+            if (row > 0 && col + 1 < mines.cols && mines[row-1][col+1])
+                mineCounts[row][col]++;
+            // E
+            if (col + 1 < mines.cols && mines[row][col+1])
+                mineCounts[row][col]++;
+            // SE
+            if (row + 1 < mines.rows && col + 1 < mines.cols && mines[row+1][col+1])
+                mineCounts[row][col]++;
+            // S
+            if (row + 1 < mines.rows && mines[row+1][col])
+                mineCounts[row][col]++;
+            // SW
+            if (row + 1 < mines.rows && col > 0 && mines[row+1][col-1])
+                mineCounts[row][col]++;
+            // W
+            if (col > 0 && mines[row][col-1])
+                mineCounts[row][col]++;
+            // NW
+            if (row > 0 && col > 0 && mines[row-1][col-1])
+                mineCounts[row][col]++;
+        }
+    }
 
     // close with ESC
     while(!WindowShouldClose()) {
@@ -148,7 +187,11 @@ int main(int, char**){
             }
 
             else if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                tileStates[mouseBoxY][mouseBoxX] = (mines[mouseBoxY][mouseBoxX] ? TileState::Mine : TileState::Empty);
+                if (mines[mouseBoxY][mouseBoxX]) {
+                    tileStates[mouseBoxY][mouseBoxX] = TileState::Mine;
+                } else {
+                    tileStates[mouseBoxY][mouseBoxX] = TileState::Empty;
+                }
             }
         }
 
@@ -166,12 +209,15 @@ int main(int, char**){
                     switch (tileStates[iy][ix]) {
                     case TileState::Untouched:
                         DrawRectangleV({x, y}, boxSize, boxColor);
-                        if (mines[iy][ix])
+                        if (UNHIDE_MINES && mines[iy][ix])
                             DrawTextureV(mine, {x, y}, BLACK);
                         break;
 
                     case TileState::Empty:
                         DrawRectangleV({x, y}, boxSize, emptyColor);
+                        if (mineCounts[iy][ix] > 0) {
+                            DrawTextureV(numbers[mineCounts[iy][ix]], {x, y}, WHITE);
+                        }
                         break;
 
                     case TileState::Flag:
@@ -180,7 +226,7 @@ int main(int, char**){
                         break;
 
                     case TileState::Mine:
-                        DrawRectangleV({x, y}, boxSize, boxColor);
+                        DrawRectangleV({x, y}, boxSize, emptyColor);
                         DrawTextureV(mine, {x, y}, WHITE);
                         break;
 
